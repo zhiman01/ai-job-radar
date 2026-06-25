@@ -1,11 +1,34 @@
 import {
-  Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle,
+  Document, Packer, Paragraph, TextRun, BorderStyle,
 } from 'docx'
 
 const BLUE = '1D4ED8'
 const INK = '1E2A3A'
 const MUTED = '7A95B0'
-const WARN = 'B45309'
+
+// Lines matching these patterns are omitted from the Word export.
+// Page preview keeps them; Word output is clean of any AI tool traces.
+const WORD_OMIT = [
+  /^[💡⚠]/,
+  /现有简历中暂缺/,
+  /建议在投递时/,
+  /建议如实告知/,
+  /面试时可坦诚说明/,
+  /可坦诚说明，并表达/,
+]
+
+function prepareForWord(raw: string): string {
+  return raw
+    .split('\n')
+    .filter(line => !WORD_OMIT.some(p => p.test(line.trim())))
+    .join('\n')
+    // Remove surrogate pairs (emoji above BMP: 💡 U+1F4A1, etc.)
+    .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')
+    // Remove misc symbol block (⚠ U+26A0, ✅ U+2705, etc.)
+    .replace(/[☀-➿]/g, '')
+    // Remove variation selectors (FE0F turns ⚠ into ⚠️)
+    .replace(/[︀-️]/g, '')
+}
 
 // Parse **bold** markers into mixed TextRun array
 function parseInline(text: string, baseSize = 18): TextRun[] {
@@ -74,15 +97,6 @@ function bodyParagraph(text: string): Paragraph {
   })
 }
 
-function warningParagraph(text: string): Paragraph {
-  return new Paragraph({
-    children: [new TextRun({
-      text: text.replace(/^[💡⚠️]\s*/, ''),
-      color: WARN, size: 17, italics: true, font: 'Arial',
-    })],
-    spacing: { before: 60, after: 40 },
-  })
-}
 
 export async function generateTailoredDocx(
   tailoredText: string,
@@ -90,7 +104,7 @@ export async function generateTailoredDocx(
   _jobTitle: string,
   _company: string,
 ): Promise<Buffer> {
-  const lines = tailoredText.split('\n').map(l => l.trim()).filter(Boolean)
+  const lines = prepareForWord(tailoredText).split('\n').map(l => l.trim()).filter(Boolean)
   const paragraphs: Paragraph[] = []
 
   for (const line of lines) {
@@ -120,11 +134,7 @@ export async function generateTailoredDocx(
     else if (line.startsWith('• ') || line.startsWith('- ')) {
       paragraphs.push(bulletParagraph(line.replace(/^[•\-]\s*/, '')))
     }
-    // Warnings / tips
-    else if (line.startsWith('💡') || line.startsWith('⚠️')) {
-      paragraphs.push(warningParagraph(line))
-    }
-    // Everything else
+    // Everything else (warning lines already stripped by prepareForWord)
     else {
       paragraphs.push(bodyParagraph(line))
     }
