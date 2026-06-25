@@ -108,17 +108,17 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph INPUT["📥 输入层"]
+    subgraph INPUT["输入层"]
         A[非结构化招聘帖文本\nXHS 分享格式 / 纯正文]
     end
 
-    subgraph PREPROCESS["🔧 前处理（代码层）"]
+    subgraph PREPROCESS["前处理（代码层）"]
         B[XHS 短链提取\nxhslink URL 识别]
         C[推广尾巴清除\n「复制后前往小红书」等]
         D[标题自动填充\n取正文首行前 40 字]
     end
 
-    subgraph AI1["🤖 AI 任务 1：结构化解析"]
+    subgraph AI1["AI 任务 1：结构化解析"]
         E[岗位字段抽取\n公司 · 职责 · 要求 · 加分项]
         F[一句话 JD 摘要生成]
         G[标签提取 3–5 个]
@@ -126,11 +126,11 @@ flowchart LR
         I[可信度说明]
     end
 
-    subgraph HUMAN1["✏️ 人工确认节点 1"]
+    subgraph HUMAN1["人工确认节点 1"]
         J[查看解析结果\n可编辑所有字段\n修正 AI 误判]
     end
 
-    subgraph AI2["🤖 AI 任务 2：JD-简历匹配"]
+    subgraph AI2["AI 任务 2：JD-简历匹配"]
         K[匹配度评分 0–100]
         L[简历匹配优势\n引用简历原文]
         M[能力缺口分析\n说明补充方向]
@@ -139,17 +139,17 @@ flowchart LR
         P[⚠️ 不建议夸大的部分]
     end
 
-    subgraph AI3["🤖 AI 任务 3：简历改写"]
+    subgraph AI3["AI 任务 3：简历改写"]
         Q[基于 JD × 简历生成完整优化文本\n❌ 不编造事实\n❌ 不添加未有经历]
         R[缺失能力标注说明\n💡 建议如实告知面试官]
     end
 
-    subgraph HUMAN2["✏️ 人工确认节点 2"]
+    subgraph HUMAN2["人工确认节点 2"]
         S[查看改写对比\n理解每处修改理由]
         T{选择导出模式}
     end
 
-    subgraph OUTPUT["📤 输出层"]
+    subgraph OUTPUT["输出层"]
         U[量化版 Word\n保留具体数据]
         V[脱敏版 Word\n数字模糊 · 公司名脱敏]
         W[纯文本复制]
@@ -200,9 +200,8 @@ flowchart TD
 
     RAW -->|AI 结构化解析| PARSED
     PARSED -->|人工校正后保存| JOB
-    JOB -->|关联| MATCH
-    RESUME -->|关联| MATCH
-    JOB & RESUME -->|AI 匹配分析| MATCH
+    JOB -->|AI 匹配分析| MATCH
+    RESUME -->|AI 匹配分析| MATCH
     MATCH -->|AI 简历改写| TAILORED
     JOB -->|状态聚合| DASHBOARD
     JOB -->|hasGeneratedResume 字段| DASHBOARD
@@ -229,37 +228,32 @@ flowchart TD
 ```mermaid
 flowchart LR
     subgraph V0["V0 · 信息聚合验证"]
-        direction TB
-        V0G["🎯 验证问题\n结构化展示是否有价值？"]
-        V0F["✅ 关键能力\n演示岗位列表\n四 Tab 详情结构\n基础状态筛选"]
-        V0L["⚠️ 发现局限\n全靠 mock 数据\n用户无法导入真实帖子"]
+        V0G["验证问题：结构化展示是否有价值？"]
+        V0F["关键能力：演示岗位列表 / 四 Tab 详情 / 基础筛选"]
+        V0L["发现局限：全靠演示数据，用户无法导入真实帖子"]
     end
 
     subgraph V1["V1 · 招聘帖导入"]
-        direction TB
-        V1G["🎯 验证问题\n能否把非结构化文本变成可用 JD？"]
-        V1F["✅ 关键能力\nXHS 分享文本适配\nAI 结构化解析\n解析结果可人工编辑\n重复导入检测"]
-        V1L["🔑 关键决策\n解析结果支持编辑\n= AI 辅助而非 AI 决策"]
+        V1G["验证问题：能否把非结构化文本变成可用 JD？"]
+        V1F["关键能力：XHS 文本适配 / AI 结构化解析 / 人工编辑"]
+        V1L["关键决策：解析结果支持编辑 = AI 辅助而非 AI 决策"]
     end
 
     subgraph V2["V2 · 匹配分析"]
-        direction TB
-        V2G["🎯 验证问题\n能否量化简历与岗位的匹配程度？"]
-        V2F["✅ 关键能力\n匹配度评分 0–100\n优势 / 缺口 / 改写建议\n面试追问预测\n演示简历开箱即用"]
-        V2L["🔑 关键决策\n预加载演示数据\nTab 永不出现空状态"]
+        V2G["验证问题：能否量化简历与岗位的匹配程度？"]
+        V2F["关键能力：匹配度评分 / 优势缺口 / 改写建议 / 面试追问"]
+        V2L["关键决策：预加载演示数据，Tab 永不出现空状态"]
     end
 
     subgraph V3["V3 · 简历生成闭环"]
-        direction TB
-        V3G["🎯 验证问题\n能否从「知道怎么改」到「改好可以用」？"]
-        V3F["✅ 关键能力\n量化版 / 脱敏版生成\nWord 下载\n改写对比展示\n投递看板 + 快捷操作\nLanding Page"]
-        V3L["🔑 关键决策\n不编造事实原则\nDashboard 嵌入操作"]
+        V3G["验证问题：能否从知道怎么改到改好可以用？"]
+        V3F["关键能力：量化版脱敏版 / Word 下载 / 投递看板"]
+        V3L["关键决策：不编造事实原则 / Dashboard 嵌入操作"]
     end
 
     subgraph V4["V4 · 规划中"]
-        direction TB
-        V4G["🎯 待验证\n真实用户场景下\n全链路能否跑通？"]
-        V4F["📋 规划能力\n真实 Word 简历上传\n浏览器插件剪藏\n云端数据同步\n多用户账号系统\n岗位推荐算法\n面试准备模块"]
+        V4G["待验证：真实用户场景下全链路能否跑通？"]
+        V4F["规划：真实简历上传 / 浏览器插件 / 云端同步 / 岗位推荐"]
     end
 
     V0 -->|发现：需要真实导入能力| V1
