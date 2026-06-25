@@ -3,12 +3,17 @@ import path from 'path'
 import { DB, Job, Resume, JobMatch } from '@/types'
 import { mockJobs } from '@/data/mock-jobs'
 
-const DB_PATH = path.join(process.cwd(), 'data', 'db.json')
+// Vercel serverless 的 process.cwd() 是只读的，改用 /tmp
+const DB_PATH = process.env.VERCEL
+  ? '/tmp/db.json'
+  : path.join(process.cwd(), 'data', 'db.json')
 
 function readDB(): DB {
   if (!fs.existsSync(DB_PATH)) {
     const initial: DB = { jobs: mockJobs, resumes: [], matches: [] }
-    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
+    if (!process.env.VERCEL) {
+      fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
+    }
     fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2), 'utf-8')
     return initial
   }
