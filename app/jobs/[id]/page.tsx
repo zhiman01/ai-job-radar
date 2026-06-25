@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Job, Resume, JobStatus } from '@/types'
 import { StatusBadge } from '@/components/jobs/StatusBadge'
 import { MatchScore } from '@/components/jobs/MatchScore'
@@ -177,7 +177,8 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<Job | null>(null)
   const [resumes, setResumes] = useState<Resume[]>([])
   const [selectedResume, setSelectedResume] = useState<string>(DEMO_RESUME_ID)
-  const [activeTab, setActiveTab] = useState('jd')
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') ?? 'jd')
 
   // Match tab
   const [match, setMatch] = useState<MatchData>(DEMO_MATCH)
@@ -260,7 +261,18 @@ export default function JobDetailPage() {
       setDocxB64(data.docxBase64 || '')
       setDocxName(data.fileName || '定制简历.docx')
       setGenPhase('done')
-      setJob(prev => prev ? { ...prev, status: '已生成简历' } : prev)
+      // Persist hasGeneratedResume; only promote status if still at an early stage
+      const shouldUpdateStatus = ['待查看', '已收藏', '待改简历'].includes(job?.status ?? '')
+      const patch: Partial<Job> = {
+        hasGeneratedResume: true,
+        ...(shouldUpdateStatus ? { status: '已生成简历' as JobStatus } : {}),
+      }
+      fetch(`/api/jobs/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      }).catch(() => {})
+      setJob(prev => prev ? { ...prev, ...patch } : prev)
     } catch {
       setGenPhase('select')
     } finally {

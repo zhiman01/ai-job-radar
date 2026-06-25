@@ -11,7 +11,7 @@ export type JobStatus =
   | '已拒绝'
   | '已放弃'
 
-export type Location = '北京' | '上海' | '深圳' | '杭州' | '远程' | '其他'
+export type Location = '北京' | '上海' | '深圳' | '杭州' | '广州' | '远程' | '不限' | '未提及' | '其他'
 
 export interface Job {
   id: string
@@ -32,6 +32,7 @@ export interface Job {
   tags: string[]
   status: JobStatus
   matchScore?: number
+  hasGeneratedResume?: boolean
   createdAt: string
   updatedAt: string
   isMock?: boolean

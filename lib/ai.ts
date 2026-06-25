@@ -60,6 +60,11 @@ function getMockResponse(prompt: string): string {
         '对大模型/AI产品有了解',
         '数据敏感，熟练使用Excel/SQL',
       ],
+      bonusItems: [
+        '有Prompt Engineering实战经验',
+        '熟悉RAG、Agent等AI技术方向',
+        '有AI产品竞品分析报告或个人项目',
+      ],
       applyMethod: '发送简历至 hiring@example.com',
       tags: ['AI产品', '大模型', '数据分析', 'A/B实验'],
       jdText: '参与AI产品需求设计、数据分析与大模型评测',
