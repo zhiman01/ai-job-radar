@@ -5,7 +5,7 @@ import { Job, JobStatus } from '@/types'
 import { JobCard } from '@/components/jobs/JobCard'
 import { JobFilters, FilterState } from '@/components/jobs/JobFilters'
 import { Button } from '@/components/ui/button'
-import { Plus, RefreshCw } from 'lucide-react'
+import { Plus, RefreshCw, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 
 const defaultFilters: FilterState = {
@@ -21,14 +21,31 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
   const [loading, setLoading] = useState(true)
+  const [resetting, setResetting] = useState(false)
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/jobs')
-    const data = await res.json()
-    setJobs(data)
-    setLoading(false)
+    try {
+      const res = await fetch('/api/jobs')
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      setJobs(data)
+    } catch {
+      setJobs([])
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  const handleReset = async () => {
+    setResetting(true)
+    try {
+      await fetch('/api/reset', { method: 'POST' })
+      await fetchJobs()
+    } finally {
+      setResetting(false)
+    }
+  }
 
   useEffect(() => { fetchJobs() }, [fetchJobs])
 
@@ -67,6 +84,9 @@ export default function JobsPage() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={fetchJobs} className="h-8 text-xs gap-1.5">
             <RefreshCw className="w-3 h-3" />刷新
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleReset} disabled={resetting} className="h-8 text-xs gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50">
+            <RotateCcw className="w-3 h-3" />{resetting ? '重置中…' : '重置演示数据'}
           </Button>
           <Link href="/import">
             <Button size="sm" className="h-8 text-xs gap-1.5 bg-[#2563EB] hover:bg-[#1D4ED8]">

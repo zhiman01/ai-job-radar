@@ -3,26 +3,39 @@ import path from 'path'
 import { DB, Job, Resume, JobMatch } from '@/types'
 import { mockJobs } from '@/data/mock-jobs'
 
-// Vercel serverless 的 process.cwd() 是只读的，改用 /tmp
 const DB_PATH = process.env.VERCEL
   ? '/tmp/db.json'
   : path.join(process.cwd(), 'data', 'db.json')
 
 function readDB(): DB {
-  if (!fs.existsSync(DB_PATH)) {
-    const initial: DB = { jobs: mockJobs, resumes: [], matches: [] }
-    if (!process.env.VERCEL) {
-      fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
+  const fallback: DB = { jobs: [...mockJobs], resumes: [], matches: [] }
+  try {
+    if (!fs.existsSync(DB_PATH)) {
+      try {
+        if (!process.env.VERCEL) {
+          fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
+        }
+        fs.writeFileSync(DB_PATH, JSON.stringify(fallback, null, 2), 'utf-8')
+      } catch { /* write failed — return fallback anyway */ }
+      return fallback
     }
-    fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2), 'utf-8')
-    return initial
+    const raw = fs.readFileSync(DB_PATH, 'utf-8')
+    const db = JSON.parse(raw) as DB
+    if (!db.jobs || db.jobs.length === 0) db.jobs = [...mockJobs]
+    return db
+  } catch {
+    return fallback
   }
-  const raw = fs.readFileSync(DB_PATH, 'utf-8')
-  return JSON.parse(raw) as DB
 }
 
 function writeDB(db: DB): void {
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf-8')
+  try {
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf-8')
+  } catch { /* ignore write errors on read-only filesystems */ }
+}
+
+export function resetToMock(): void {
+  writeDB({ jobs: [...mockJobs], resumes: [], matches: [] })
 }
 
 // Jobs

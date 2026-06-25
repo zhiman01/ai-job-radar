@@ -50,7 +50,10 @@ export default function DashboardPage() {
   const [jobs, setJobs] = useState<Job[]>([])
 
   useEffect(() => {
-    fetch('/api/jobs').then(r => r.json()).then(setJobs)
+    fetch('/api/jobs')
+      .then(r => { if (!r.ok) throw new Error(); return r.json() })
+      .then(setJobs)
+      .catch(() => {})
   }, [])
 
   const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7)
