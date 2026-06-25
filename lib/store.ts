@@ -2,13 +2,14 @@ import fs from 'fs'
 import path from 'path'
 import { DB, Job, Resume, JobMatch } from '@/types'
 import { mockJobs } from '@/data/mock-jobs'
+import { mockResume } from '@/data/mock-resume'
 
 const DB_PATH = process.env.VERCEL
   ? '/tmp/db.json'
   : path.join(process.cwd(), 'data', 'db.json')
 
 function readDB(): DB {
-  const fallback: DB = { jobs: [...mockJobs], resumes: [], matches: [] }
+  const fallback: DB = { jobs: [...mockJobs], resumes: [mockResume], matches: [] }
   try {
     if (!fs.existsSync(DB_PATH)) {
       try {
@@ -22,6 +23,8 @@ function readDB(): DB {
     const raw = fs.readFileSync(DB_PATH, 'utf-8')
     const db = JSON.parse(raw) as DB
     if (!db.jobs || db.jobs.length === 0) db.jobs = [...mockJobs]
+    if (!db.resumes) db.resumes = []
+    if (!db.resumes.some(r => r.id === mockResume.id)) db.resumes.unshift(mockResume)
     return db
   } catch {
     return fallback
