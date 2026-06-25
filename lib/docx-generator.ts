@@ -1,130 +1,141 @@
 import {
-  Document,
-  Packer,
-  Paragraph,
-  TextRun,
-  HeadingLevel,
-  AlignmentType,
-  BorderStyle,
+  Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle,
 } from 'docx'
 
-const BLUE = '1F5A7A'
-const INK = '222222'
-const MUTED = '5D6770'
+const BLUE = '1D4ED8'
+const INK = '1E2A3A'
+const MUTED = '7A95B0'
+const WARN = 'B45309'
 
-function heading(text: string): Paragraph {
-  return new Paragraph({
-    children: [new TextRun({ text, bold: true, size: 24, color: BLUE, font: 'Arial' })],
-    heading: HeadingLevel.HEADING_1,
-    spacing: { before: 200, after: 100 },
-    border: {
-      bottom: { style: BorderStyle.SINGLE, size: 6, color: 'D9E7EF' },
-    },
+// Parse **bold** markers into mixed TextRun array
+function parseInline(text: string, baseSize = 18): TextRun[] {
+  return text.split(/(\*\*[^*]+\*\*)/).map(p => {
+    if (p.startsWith('**') && p.endsWith('**')) {
+      return new TextRun({ text: p.slice(2, -2), bold: true, color: INK, size: baseSize, font: 'Arial' })
+    }
+    return new TextRun({ text: p.replace(/\*/g, ''), color: INK, size: baseSize, font: 'Arial' })
   })
 }
 
-function subheading(left: string, right: string): Paragraph {
+function nameParagraph(raw: string): Paragraph {
+  const [name, role] = raw.split(/[｜|]/).map(s => s.trim())
+  return new Paragraph({
+    children: [
+      new TextRun({ text: name, bold: true, size: 44, color: INK, font: 'Arial' }),
+      ...(role ? [new TextRun({ text: '   ' + role, size: 22, color: MUTED, font: 'Arial' })] : []),
+    ],
+    spacing: { before: 0, after: 100 },
+  })
+}
+
+function sectionHeading(text: string): Paragraph {
+  return new Paragraph({
+    children: [new TextRun({ text, bold: true, size: 20, color: BLUE, font: 'Arial', characterSpacing: 60 })],
+    spacing: { before: 260, after: 80 },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'BFDBFE' } },
+  })
+}
+
+// Company / institution line: bold left, muted right (date, role)
+function institutionLine(left: string, right?: string): Paragraph {
   return new Paragraph({
     children: [
       new TextRun({ text: left, bold: true, size: 20, color: INK, font: 'Arial' }),
-      new TextRun({ text: '    ' + right, size: 18, color: MUTED, font: 'Arial' }),
+      ...(right ? [new TextRun({ text: '    ' + right, size: 18, color: MUTED, font: 'Arial' })] : []),
     ],
     spacing: { before: 120, after: 40 },
   })
 }
 
-function bullet(text: string): Paragraph {
-  const boldMatch = text.match(/^(.+?[｜|])\s*(.*)$/)
-  const children = boldMatch
+function bulletParagraph(text: string): Paragraph {
+  // Support leading bold label: "大模型竞品评测｜ rest"
+  const labelMatch = text.match(/^(.+?[｜|])\s*(.*)$/)
+  const children = labelMatch
     ? [
-        new TextRun({ text: '• ', color: BLUE, font: 'Arial', size: 18 }),
-        new TextRun({ text: boldMatch[1], bold: true, color: BLUE, size: 18, font: 'Arial' }),
-        new TextRun({ text: boldMatch[2], color: INK, size: 18, font: 'Arial' }),
+        new TextRun({ text: '• ', color: BLUE, size: 18, font: 'Arial' }),
+        new TextRun({ text: labelMatch[1], bold: true, color: INK, size: 18, font: 'Arial' }),
+        new TextRun({ text: labelMatch[2], color: INK, size: 18, font: 'Arial' }),
       ]
     : [
-        new TextRun({ text: '• ' + text, color: INK, size: 18, font: 'Arial' }),
+        new TextRun({ text: '• ', color: BLUE, size: 18, font: 'Arial' }),
+        ...parseInline(text),
       ]
   return new Paragraph({
     children,
-    spacing: { before: 40, after: 40 },
-    indent: { left: 300 },
+    spacing: { before: 36, after: 36 },
+    indent: { left: 280 },
   })
 }
 
-function body(text: string): Paragraph {
+function bodyParagraph(text: string): Paragraph {
   return new Paragraph({
-    children: [new TextRun({ text, color: INK, size: 18, font: 'Arial' })],
-    spacing: { before: 40, after: 40 },
+    children: parseInline(text),
+    spacing: { before: 30, after: 30 },
   })
 }
 
-function warning(text: string): Paragraph {
+function warningParagraph(text: string): Paragraph {
   return new Paragraph({
-    children: [new TextRun({ text, color: 'C0392B', size: 17, italics: true, font: 'Arial' })],
+    children: [new TextRun({
+      text: text.replace(/^[💡⚠️]\s*/, ''),
+      color: WARN, size: 17, italics: true, font: 'Arial',
+    })],
     spacing: { before: 60, after: 40 },
   })
 }
 
 export async function generateTailoredDocx(
   tailoredText: string,
-  jobTitle: string,
-  company: string
+  // kept for signature compatibility, no longer used as a fluff header
+  _jobTitle: string,
+  _company: string,
 ): Promise<Buffer> {
-  const lines = tailoredText.split('\n').map((l) => l.trim()).filter(Boolean)
+  const lines = tailoredText.split('\n').map(l => l.trim()).filter(Boolean)
   const paragraphs: Paragraph[] = []
 
-  paragraphs.push(
-    new Paragraph({
-      children: [
-        new TextRun({ text: '求职定制简历', bold: true, size: 36, color: INK, font: 'Arial' }),
-      ],
-      alignment: AlignmentType.LEFT,
-      spacing: { before: 0, after: 60 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({ text: `目标岗位：${jobTitle} @ ${company}`, size: 20, color: MUTED, font: 'Arial' }),
-      ],
-      spacing: { before: 0, after: 200 },
-    })
-  )
-
   for (const line of lines) {
+    // Name (# 姓名｜职位)
     if (line.startsWith('# ')) {
-      paragraphs.push(
-        new Paragraph({
-          children: [new TextRun({ text: line.replace(/^#+ /, ''), bold: true, size: 28, color: INK, font: 'Arial' })],
-          spacing: { before: 100, after: 80 },
-        })
-      )
-    } else if (line.startsWith('## ')) {
-      paragraphs.push(heading(line.replace(/^#+ /, '')))
-    } else if (line.startsWith('**') && line.endsWith('**')) {
-      paragraphs.push(subheading(line.replace(/\*\*/g, ''), ''))
-    } else if (line.startsWith('• ') || line.startsWith('- ')) {
-      paragraphs.push(bullet(line.replace(/^[•\-]\s*/, '')))
-    } else if (line.startsWith('⚠️')) {
-      paragraphs.push(warning(line))
-    } else if (line.match(/^\*\*.+\*\*\s.+\s\d{4}/)) {
-      const clean = line.replace(/\*\*/g, '')
-      paragraphs.push(subheading(clean, ''))
-    } else {
-      paragraphs.push(body(line))
+      paragraphs.push(nameParagraph(line.slice(2).trim()))
+    }
+    // Section heading: ## or === ===
+    else if (line.startsWith('## ')) {
+      paragraphs.push(sectionHeading(line.slice(3).trim()))
+    }
+    else if (/^===.+===$/.test(line)) {
+      paragraphs.push(sectionHeading(line.replace(/===/g, '').trim()))
+    }
+    // Bold institution/company line (starts with ** but not a bullet)
+    else if (line.startsWith('**') && !line.startsWith('• ')) {
+      const clean = line.replace(/\*\*/g, '').trim()
+      // Split on 2+ spaces to separate name from role/date
+      const twoSpace = clean.indexOf('  ')
+      if (twoSpace > 0) {
+        paragraphs.push(institutionLine(clean.slice(0, twoSpace).trim(), clean.slice(twoSpace).trim()))
+      } else {
+        paragraphs.push(institutionLine(clean))
+      }
+    }
+    // Bullets
+    else if (line.startsWith('• ') || line.startsWith('- ')) {
+      paragraphs.push(bulletParagraph(line.replace(/^[•\-]\s*/, '')))
+    }
+    // Warnings / tips
+    else if (line.startsWith('💡') || line.startsWith('⚠️')) {
+      paragraphs.push(warningParagraph(line))
+    }
+    // Everything else
+    else {
+      paragraphs.push(bodyParagraph(line))
     }
   }
 
   const doc = new Document({
-    sections: [
-      {
-        properties: {
-          page: {
-            margin: { top: 720, bottom: 720, left: 900, right: 900 },
-          },
-        },
-        children: paragraphs,
-      },
-    ],
+    sections: [{
+      properties: { page: { margin: { top: 720, bottom: 720, left: 900, right: 900 } } },
+      children: paragraphs,
+    }],
   })
 
-  return await Packer.toBuffer(doc)
+  return Packer.toBuffer(doc)
 }

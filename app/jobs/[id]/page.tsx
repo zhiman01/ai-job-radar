@@ -15,7 +15,9 @@ import {
   ArrowLeft, MapPin, CalendarDays, Building2, ExternalLink,
   Sparkles, FileText, Download, CheckCircle, XCircle, Loader2,
   Brain, Users, Target, AlertTriangle, ChevronRight, Zap,
+  Copy, RotateCcw, Info,
 } from 'lucide-react'
+import { desensitize } from '@/lib/desensitize'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -71,7 +73,7 @@ const DEMO_MATCH: MatchData = {
     {
       section: '百度实习·兜底体验优化',
       original: '参与A/B实验口径、归因与推全建议',
-      suggestion: '参与退款/订单/客服三类高频失败意图的分层兜底方案设计；主导A/B实验指标口径制定与数据归因，实验组好评率+0.72pct，服务转化率相对提升41.65%，点踩量-4.91%，为推全决策提供数据支撑。',
+      suggestion: '参与退款/订单/客服三类高频失败意图的分层兜底方案设计；主导A/B实验指标口径制定与数据归因，实验组好评率+0.72pct，服务转化率相对提升41.65%，点踩量下降4.91%，为推全决策提供数据支撑。',
       reason: '将模糊的"参与"改为具体的职责范围和贡献环节，添加量化结果（三项指标）和决策影响力',
     },
   ],
@@ -175,6 +177,7 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<Job | null>(null)
   const [resumes, setResumes] = useState<Resume[]>([])
   const [selectedResume, setSelectedResume] = useState<string>(DEMO_RESUME_ID)
+  const [activeTab, setActiveTab] = useState('jd')
 
   // Match tab
   const [match, setMatch] = useState<MatchData>(DEMO_MATCH)
@@ -188,6 +191,9 @@ export default function JobDetailPage() {
   const [tailoredText, setTailoredText] = useState('')
   const [docxB64, setDocxB64] = useState('')
   const [docxName, setDocxName] = useState('')
+  const [exportMode, setExportMode] = useState<'量化版' | '脱敏版'>('量化版')
+  const [copying, setCopying] = useState(false)
+  const [docxLoading, setDocxLoading] = useState(false)
 
   useEffect(() => {
     fetch(`/api/jobs/${id}`)
@@ -262,13 +268,48 @@ export default function JobDetailPage() {
     }
   }
 
-  const downloadDocx = () => {
-    if (!docxB64) return
-    const binary = atob(docxB64)
+  const triggerDocxDownload = (b64: string, name: string) => {
+    const binary = atob(b64)
     const bytes = new Uint8Array(binary.length)
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
     const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = docxName; a.click()
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click()
+  }
+
+  const downloadDocx = async () => {
+    if (!job) return
+    if (exportMode === '量化版' && docxB64) {
+      triggerDocxDownload(docxB64, docxName)
+      return
+    }
+    // Desensitized: generate fresh docx from scrubbed text
+    setDocxLoading(true)
+    try {
+      const text = exportMode === '脱敏版' ? desensitize(tailoredText) : tailoredText
+      const res = await fetch('/api/download-docx', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, jobTitle: job.title, company: job.company }),
+      })
+      const data = await res.json()
+      const suffix = exportMode === '脱敏版' ? '（脱敏版）' : ''
+      triggerDocxDownload(data.docxBase64, docxName.replace('.docx', `${suffix}.docx`))
+    } finally {
+      setDocxLoading(false)
+    }
+  }
+
+  const copyText = async () => {
+    const text = exportMode === '脱敏版' ? desensitize(tailoredText) : tailoredText
+    await navigator.clipboard.writeText(text)
+    setCopying(true)
+    setTimeout(() => setCopying(false), 2000)
+  }
+
+  const resetGenerate = () => {
+    setGenPhase('select')
+    setTailoredText('')
+    setDocxB64('')
+    setExportMode('量化版')
   }
 
   if (!job) return <div className="text-center py-20 text-[#9DAFC0] text-sm">加载中…</div>
@@ -337,7 +378,13 @@ export default function JobDetailPage() {
       </div>
 
       {/* ── Tabs ── */}
-      <Tabs defaultValue="jd">
+      {/* Demo notice */}
+      <div className="flex items-center gap-2 bg-[#F0F7FF] border border-[#BFDBFE] rounded-xl px-4 py-2.5 mb-4 text-xs text-[#1D4ED8]">
+        <Info className="w-3.5 h-3.5 flex-shrink-0" />
+        作品集演示版本，支持基于演示简历生成定制简历；真实使用时可上传个人 Word 简历。
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-white border border-[#E1EAF5] p-1 h-9 mb-4">
           <TabsTrigger value="jd" className="text-xs h-7">岗位详情</TabsTrigger>
           <TabsTrigger value="match" className="text-xs h-7">匹配分析</TabsTrigger>
@@ -743,30 +790,58 @@ export default function JobDetailPage() {
           {genPhase === 'done' && tailoredText && (
             <div className="space-y-4">
 
-              {/* Success banner */}
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <CheckCircle className="w-4 h-4 text-emerald-600" />
+              {/* Action bar */}
+              <div className="bg-white border border-[#E1EAF5] rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-emerald-800">定制简历已生成</p>
-                    <p className="text-xs text-emerald-600 mt-0.5">已针对「{job.title} @ {job.company}」优化</p>
-                  </div>
+                  <p className="text-sm font-semibold text-[#1E2A3A]">定制简历已生成</p>
+                  <p className="text-xs text-[#9DAFC0]">针对「{job.title} @ {job.company}」优化</p>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {docxB64 ? (
-                    <Button size="sm" onClick={downloadDocx}
-                      className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700">
-                      <Download className="w-3 h-3" />下载 Word 文件
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-[#9DAFC0]">Word 文件生成中…</span>
-                  )}
-                  <Button size="sm" variant="outline"
-                    onClick={() => { setGenPhase('select'); setTailoredText('') }}
-                    className="h-8 text-xs">
-                    重新生成
+
+                {/* Mode toggle */}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-[#7A95B0] flex-shrink-0">导出格式：</span>
+                  {(['量化版', '脱敏版'] as const).map(mode => (
+                    <button key={mode}
+                      onClick={() => setExportMode(mode)}
+                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                        exportMode === mode
+                          ? 'bg-[#EFF6FF] border-[#BFDBFE] text-[#1D4ED8] font-medium'
+                          : 'bg-white border-[#E1EAF5] text-[#7A95B0] hover:border-[#BFDBFE]'
+                      }`}>
+                      <div className={`w-3 h-3 rounded-full border-2 flex items-center justify-center ${exportMode === mode ? 'border-[#2563EB]' : 'border-[#C8D8F0]'}`}>
+                        {exportMode === mode && <div className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />}
+                      </div>
+                      {mode}
+                      {mode === '量化版' && <span className="text-[10px] text-[#9DAFC0]">（含具体数据）</span>}
+                      {mode === '脱敏版' && <span className="text-[10px] text-[#9DAFC0]">（数据已模糊化）</span>}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 4 action buttons */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button size="sm" onClick={downloadDocx} disabled={docxLoading}
+                    className="h-8 text-xs gap-1.5 bg-[#2563EB] hover:bg-[#1D4ED8]">
+                    {docxLoading
+                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : <Download className="w-3 h-3" />}
+                    下载 Word（{exportMode}）
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={copyText}
+                    className="h-8 text-xs gap-1.5">
+                    {copying ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                    {copying ? '已复制' : '复制简历文本'}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={resetGenerate}
+                    className="h-8 text-xs gap-1.5">
+                    <RotateCcw className="w-3 h-3" />重新生成
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setActiveTab('match')}
+                    className="h-8 text-xs gap-1.5 text-[#2563EB] border-[#BFDBFE] hover:bg-[#EFF6FF]">
+                    <ArrowLeft className="w-3 h-3" />返回匹配分析
                   </Button>
                 </div>
               </div>
