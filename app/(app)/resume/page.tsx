@@ -93,7 +93,7 @@ export default function ResumePage() {
   useEffect(() => { fetchResumes() }, [fetchResumes])
 
   const uploadFile = async (file: File) => {
-    if (!file.name.endsWith('.docx')) { setError('仅支持 .docx 格式'); return }
+    if (!file.name.endsWith('.docx') && !file.name.endsWith('.pdf')) { setError('仅支持 .docx 或 .pdf 格式'); return }
     setUploading(true); setError('')
     const form = new FormData(); form.append('file', file)
     try {
@@ -135,7 +135,7 @@ export default function ResumePage() {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
-        <input type="file" accept=".docx" onChange={handleFileInput} className="hidden" />
+        <input type="file" accept=".docx,.pdf" onChange={handleFileInput} className="hidden" />
         <div className="flex flex-col items-center gap-3">
           <div className="w-12 h-12 bg-[#EFF6FF] rounded-full flex items-center justify-center">
             <Upload className={`w-5 h-5 ${uploading ? 'text-blue-400 animate-bounce' : 'text-[#2563EB]'}`} />
@@ -144,7 +144,7 @@ export default function ResumePage() {
             <p className="text-sm font-medium text-[#1E2A3A]">
               {uploading ? '解析中，请稍候…' : '点击或拖拽上传 Word 简历'}
             </p>
-            <p className="text-xs text-[#9DAFC0] mt-1">仅支持 .docx 格式</p>
+            <p className="text-xs text-[#9DAFC0] mt-1">支持 .docx 和 .pdf 格式</p>
           </div>
         </div>
       </label>
