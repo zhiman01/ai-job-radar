@@ -1,5 +1,5 @@
 import mammoth from 'mammoth'
-import { callAI } from './ai'
+import { callAI, isMockMode } from './ai'
 import { parseResumePrompt } from './prompts'
 
 export interface ParsedResume {
@@ -11,25 +11,28 @@ export interface ParsedResume {
 }
 
 export async function parseFromRaw(raw: string): Promise<ParsedResume> {
-  try {
-    const aiRaw = await callAI(parseResumePrompt(raw))
-    const jsonMatch = aiRaw.match(/\{[\s\S]*\}/)
-    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : aiRaw)
-    return {
-      raw,
-      education: Array.isArray(parsed.education) ? parsed.education : [],
-      experience: Array.isArray(parsed.experience) ? parsed.experience : [],
-      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
-      skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+  if (!isMockMode()) {
+    try {
+      const aiRaw = await callAI(parseResumePrompt(raw))
+      const jsonMatch = aiRaw.match(/\{[\s\S]*\}/)
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : aiRaw)
+      return {
+        raw,
+        education: Array.isArray(parsed.education) ? parsed.education : [],
+        experience: Array.isArray(parsed.experience) ? parsed.experience : [],
+        projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+        skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+      }
+    } catch {
+      // fall through to keyword extraction
     }
-  } catch {
-    return {
-      raw,
-      education: extractSection(raw, ['教育经历', '教育背景', 'Education']),
-      experience: extractSection(raw, ['实习经历', '工作经历', '实习', 'Experience']),
-      projects: extractSection(raw, ['项目经历', '数据项目', '项目', 'Projects']),
-      skills: extractSection(raw, ['技能', '技能与方法', 'Skills']),
-    }
+  }
+  return {
+    raw,
+    education: extractSection(raw, ['教育经历', '教育背景', 'Education']),
+    experience: extractSection(raw, ['实习经历', '工作经历', '实习', 'Experience']),
+    projects: extractSection(raw, ['项目经历', '数据项目', '项目', 'Projects']),
+    skills: extractSection(raw, ['技能', '技能与方法', 'Skills']),
   }
 }
 
