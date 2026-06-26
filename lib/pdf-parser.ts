@@ -1,6 +1,5 @@
-import { PDFParse } from 'pdf-parse'
-
 export async function parsePdfText(buffer: Buffer): Promise<string> {
+  const { PDFParse } = await import('pdf-parse')
   const parser = new PDFParse({ data: new Uint8Array(buffer) })
   const result = await parser.getText()
   await parser.destroy()

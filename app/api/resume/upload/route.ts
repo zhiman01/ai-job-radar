@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseDocx, parseFromRaw } from '@/lib/docx-parser'
-import { parsePdfText } from '@/lib/pdf-parser'
 import { createResume } from '@/lib/store'
 import { Resume } from '@/types'
 import { nanoid } from 'nanoid'
@@ -22,6 +21,7 @@ export async function POST(req: NextRequest) {
     if (isDocx) {
       parsed = await parseDocx(buffer)
     } else {
+      const { parsePdfText } = await import('@/lib/pdf-parser')
       const raw = await parsePdfText(buffer)
       parsed = await parseFromRaw(raw)
     }
