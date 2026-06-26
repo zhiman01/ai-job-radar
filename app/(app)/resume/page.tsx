@@ -81,8 +81,13 @@ export default function ResumePage() {
   const [error, setError] = useState('')
 
   const fetchResumes = useCallback(async () => {
-    const res = await fetch('/api/resume')
-    setResumes(await res.json())
+    try {
+      const res = await fetch('/api/resume')
+      if (!res.ok) return
+      setResumes(await res.json())
+    } catch {
+      // ignore network errors — show empty state
+    }
   }, [])
 
   useEffect(() => { fetchResumes() }, [fetchResumes])

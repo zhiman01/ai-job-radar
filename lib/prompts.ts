@@ -47,6 +47,7 @@ ${resumeText}
   "keywords": ["岗位核心关键词1", "关键词2"],
   "strengths": ["简历中与岗位匹配的优势1", "优势2"],
   "gaps": ["简历中缺失或表达不足的能力1", "差距2"],
+  "recommendations": ["针对岗位，建议在简历/投递前补充或强化的行动1", "行动2", "行动3"],
   "rewriteSuggestions": [
     {
       "section": "经历/模块名称",

@@ -232,6 +232,7 @@ export default function JobDetailClient() {
         keywords: data.keywords?.length ? data.keywords : DEMO_MATCH.keywords,
         strengths: data.strengths?.length ? data.strengths : DEMO_MATCH.strengths,
         gaps: data.gaps?.length ? data.gaps : DEMO_MATCH.gaps,
+        recommendations: data.recommendations?.length ? data.recommendations : DEMO_MATCH.recommendations,
         rewriteSuggestions: data.rewriteSuggestions?.length ? data.rewriteSuggestions : DEMO_MATCH.rewriteSuggestions,
         interviewQuestions: data.interviewQuestions?.length ? data.interviewQuestions : DEMO_MATCH.interviewQuestions,
         warnings: data.warnings?.length ? data.warnings : DEMO_MATCH.warnings,

@@ -88,6 +88,11 @@ function getMockResponse(prompt: string): string {
         '未提及SQL数据查询经验（可补充在数据项目中）',
         '缺少Figma/Axure原型设计作品说明',
       ],
+      recommendations: [
+        '补充使用目标公司产品的真实体验和产品观察（如日常使用 Kimi 的感受）',
+        '将 SQL 经验从「数据处理」中分拆出来单独呈现，加数量级或时长',
+        '在项目经历中加入一个完整的 Axure 原型截图链接或具体说明',
+      ],
       rewriteSuggestions: [
         {
           section: '百度实习经历·大模型竞品评测',
