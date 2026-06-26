@@ -1,3 +1,24 @@
+export const parseResumePrompt = (rawText: string) => `
+你是一个简历结构化提取助手。请分析以下简历文本，按模块提取内容。
+
+简历文本：
+${rawText}
+
+请严格按照以下 JSON 格式输出，不要输出任何其他内容：
+{
+  "education": ["每所学校一个条目，包含学校名、专业、学历、时间"],
+  "experience": ["每段实习/工作经历一个条目，包含公司、职位、时间及所有职责描述"],
+  "projects": ["每个项目一个条目，包含项目名、时间及完整描述"],
+  "skills": ["技能内容，每行或每个技能点一个条目"]
+}
+
+注意：
+- 保留原文表达，不改写、不总结、不遗漏
+- 每段实习/项目经历的所有 bullet 点都合并到同一个条目里
+- 如某模块在简历中不存在，返回空数组 []
+- 中英文简历均适用
+`
+
 export const parseXhsPostPrompt = (rawText: string, title: string, postDate: string) => `
 你是一个招聘信息结构化提取助手。请分析以下小红书帖子，判断是否为招聘帖，并提取结构化信息。
 
