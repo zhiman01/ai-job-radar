@@ -199,12 +199,24 @@ export default function JobDetailClient() {
   useEffect(() => {
     fetch(`/api/jobs/${id}`)
       .then(r => r.json()).then(setJob).catch(() => {})
+
+    const loadCached = (): Resume[] => {
+      try { return JSON.parse(localStorage.getItem('ai-job-radar-resumes') || '[]') }
+      catch { return [] }
+    }
+
     fetch('/api/resume')
       .then(r => r.json())
       .then((data: Resume[]) => {
-        setResumes(data.filter(r => r.id !== DEMO_RESUME_ID))
+        const serverUploaded = data.filter(r => r.id !== DEMO_RESUME_ID)
+        const cached = loadCached()
+        const serverIds = new Set(serverUploaded.map(r => r.id))
+        const cachedOnly = cached.filter(r => !serverIds.has(r.id))
+        setResumes([...serverUploaded, ...cachedOnly])
       })
-      .catch(() => {})
+      .catch(() => {
+        setResumes(loadCached().filter(r => r.id !== DEMO_RESUME_ID))
+      })
   }, [id])
 
   const updateStatus = async (status: JobStatus) => {
@@ -220,10 +232,11 @@ export default function JobDetailClient() {
     setMatchLoading(true)
     setMatchStep(0)
     const timer = setInterval(() => setMatchStep(s => Math.min(s + 1, MATCH_STEPS.length - 1)), 3500)
+    const resumeText = resumes.find(r => r.id === selectedResume)?.originalText
     try {
       const res = await fetch('/api/match', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId: id, resumeId: selectedResume }),
+        body: JSON.stringify({ jobId: id, resumeId: selectedResume, resumeText }),
       })
       const data = await res.json()
       setMatch({
@@ -252,10 +265,11 @@ export default function JobDetailClient() {
     setGenPhase('loading')
     setGenAnimStep(0)
     const timer = setInterval(() => setGenAnimStep(s => Math.min(s + 1, GEN_STEPS.length - 1)), 4000)
+    const resumeText = resumes.find(r => r.id === selectedResume)?.originalText
     try {
       const res = await fetch('/api/generate-resume', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId: id, resumeId: selectedResume }),
+        body: JSON.stringify({ jobId: id, resumeId: selectedResume, resumeText }),
       })
       const data = await res.json()
       setTailoredText(data.tailoredResumeText)

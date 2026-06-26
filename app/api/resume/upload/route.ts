@@ -41,9 +41,14 @@ export async function POST(req: NextRequest) {
       skills: parsed.skills,
       raw: parsed.raw,
     },
+    source: 'uploaded',
     createdAt: now,
     updatedAt: now,
   }
   createResume(resume)
-  return NextResponse.json(resume, { status: 201 })
+  return NextResponse.json({
+    ...resume,
+    textLength: parsed.raw.length,
+    rawTextPreview: parsed.raw.slice(0, 100),
+  }, { status: 201 })
 }

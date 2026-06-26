@@ -49,6 +49,7 @@ export interface Resume {
     skills?: string[]
     raw?: string
   }
+  source?: 'uploaded' | 'demo'
   createdAt: string
   updatedAt: string
 }

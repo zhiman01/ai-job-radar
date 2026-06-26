@@ -6,15 +6,16 @@ import { JobMatch } from '@/types'
 import { nanoid } from 'nanoid'
 
 export async function POST(req: NextRequest) {
-  const { jobId, resumeId } = await req.json()
+  const { jobId, resumeId, resumeText: bodyResumeText } = await req.json()
   const job = getJob(jobId)
   const resume = getResume(resumeId)
-  if (!job || !resume) {
+  const resumeText = bodyResumeText || resume?.originalText
+  if (!job || !resumeText) {
     return NextResponse.json({ error: '岗位或简历不存在' }, { status: 404 })
   }
 
   const jd = `${job.jdText}\n\n职责：\n${job.responsibilities.join('\n')}\n\n要求：\n${job.requirements.join('\n')}`
-  const prompt = matchResumePrompt(jd, resume.originalText, job.title, job.company)
+  const prompt = matchResumePrompt(jd, resumeText, job.title, job.company)
   const raw = await callAI(prompt)
 
   let parsed: Record<string, unknown>

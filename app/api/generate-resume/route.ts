@@ -5,10 +5,11 @@ import { rewriteResumePrompt } from '@/lib/prompts'
 import { generateTailoredDocx } from '@/lib/docx-generator'
 
 export async function POST(req: NextRequest) {
-  const { jobId, resumeId } = await req.json()
+  const { jobId, resumeId, resumeText: bodyResumeText } = await req.json()
   const job = getJob(jobId)
   const resume = getResume(resumeId)
-  if (!job || !resume) {
+  const resumeText = bodyResumeText || resume?.originalText
+  if (!job || !resumeText) {
     return NextResponse.json({ error: '岗位或简历不存在' }, { status: 404 })
   }
 
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
   const gaps = existingMatch?.gaps || []
 
   const jd = `${job.jdText}\n\n职责：\n${job.responsibilities.join('\n')}\n\n要求：\n${job.requirements.join('\n')}`
-  const prompt = rewriteResumePrompt(jd, resume.originalText, job.title, job.company, strengths, gaps)
+  const prompt = rewriteResumePrompt(jd, resumeText, job.title, job.company, strengths, gaps)
   const tailoredText = await callAI(prompt)
 
   const docxBuffer = await generateTailoredDocx(tailoredText, job.title, job.company)
